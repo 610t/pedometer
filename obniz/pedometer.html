@@ -1,0 +1,101 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+    />
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script
+      src="https://unpkg.com/obniz@3.x/obniz.js"
+      crossorigin="anonymous"
+    ></script>
+  </head>
+  <body>
+    <div id="obniz-debug"></div>
+    <h4 id="instruction" class="text-center">
+      Please place your M5SrickC in the correct posture.
+    </h4>
+    <h5 id="step"></h5>
+    <h5 id="count"></h5>
+    <h5 id="accel"></h5>
+    <h5 id="avg"></h5>
+    <script>
+     //put your obniz ID
+     let obniz = new Obniz.M5StickC("OBNIZ_ID_HERE");
+
+     //during obniz(M5stickC) connection
+     obniz.onconnect = async function () {
+       //setup acceleration and gyro sensor
+       //if you use M5stickC with MPU6886
+       // await obniz.setupIMUWait();
+       //if you user M5stickC with SH200Q(the old one. look on the reverse side on your M5StickC.)
+       await obniz.setupIMUWait("SH200Q");
+
+       let calibrationVal = 0;
+
+       let step = 0;
+       let total = 0;
+       let count = 0;
+       let avg = 1.1;
+       let width = avg / 10;
+       let state = false;
+       let old_state = false;
+
+       //init acceleration vals and calibration (for the first 3 seconds)
+       let initAccelVals;
+       for (let i = 0; i < 5; i++) {
+         initAccelVals = await obniz.accelerationWait();
+       }
+       calibrationVal = initAccelVals.z - 1.0;
+       console.log("calibrationVal: " + calibrationVal);
+       // await obniz.wait(3000);
+       $("#instruction").html("Shake your M5StickC!!");
+
+       obniz.onloop = async function () {
+         let currentAccelVals = await obniz.accelerationWait();
+         console.log(currentAccelVals);
+
+         let x_accel = currentAccelVals.x - calibrationVal;
+         let y_accel = currentAccelVals.y - calibrationVal;
+         let z_accel = currentAccelVals.z - calibrationVal;
+         let accel = Math.sqrt(
+           x_accel * x_accel + y_accel * y_accel + z_accel * z_accel
+         );
+
+         if (count < 10) {
+           total += accel;
+           count += 1;
+         } else {
+           avg = total / count;
+           width = avg / 10;
+           total = avg;
+           count = 1;
+         }
+         if (accel > avg + width) {
+           state = true;
+         } else if (accel < avg - width) {
+           state = false;
+         }
+         if (!old_state && state) {
+           step += 1;
+           // obniz.display.clear();
+           // obniz.display.print(String(step));
+           obniz.led.on();
+         } else {
+           obniz.led.off();
+         }
+         old_state = state;
+
+         $("#step").html("Step:" + String(step));
+         $("#count").html("Count:" + String(count));
+         $("#accel").html("Accel:" + String(accel));
+         $("#avg").html("Avg:" + String(avg));
+
+         //await obniz.wait(200);
+       };
+     };
+</script>
+  </body>
+</html>
