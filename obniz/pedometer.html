@@ -92,6 +92,14 @@
          $("#count").html("Count:" + String(count));
          $("#accel").html("Accel:" + String(accel));
          $("#avg").html("Avg:" + String(avg));
+         if (await obniz.buttonA.isPressedWait()) {
+           obniz.display.clear();
+           obniz.display.print("Step");
+           obniz.display.print(step);
+           obniz.display.print(count);
+           obniz.display.print(accel);
+           obniz.display.print(avg);
+         }
 
          //await obniz.wait(200);
        };
