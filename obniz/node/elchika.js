@@ -1,6 +1,6 @@
 //// ピン割当
 //  0(SDA),1(SCL)       I2C (BMP280+SHT31)
-//  7                   LED bar
+//  2-7                 LED
 //  8                   USB Fan
 //  9                   PIR
 //  10,11               servo
@@ -19,6 +19,10 @@ let avg = 1.25; // 平均加速度
 let width = avg / 10; // 歩数カウント用閾値
 let state = false; // 現在の状態
 let old_state = false; // 一つ前の状態
+
+//// LED関連
+let led = [];
+const NUM_OF_LEDS = 7;
 
 //// サーボ関連
 // 歩数差分表示用
@@ -59,6 +63,11 @@ obniz1.onconnect = async() => {
     let bmp280 = obniz1.wired("BMP280", { sdi: 0, sck: 1, i2c: i2c });
     let sht31 = obniz1.wired("SHT31", { sda: 0, scl: 1, i2c: i2c });
     await bmp280.applyCalibration(); // BMP280の補正
+
+    // LEDの初期化
+    for (let l = 0; l < NUM_OF_LEDS; l++) {
+        led[l] = obniz1.wired("LED", { anode: (l + 2) });
+    }
 
     //// M5StickCが接続された時
     m5.onconnect = async() => {
@@ -153,7 +162,7 @@ obniz1.onconnect = async() => {
         // サーボモーターでの歩数の表示
         // 歩数差分を表示する
         let now = Date.now();
-        let dstep = 1000 * (step - old_step) / (now - old_time); // step/msec
+        let dstep = 1000 * (step - old_step) / (now - old_time); // step/sec
         console.log("Delta step:" + dstep);
         let angle = 180 - 180 * (dstep * 0.25);
         if (angle <= 0) { angle = 0; }
@@ -161,6 +170,14 @@ obniz1.onconnect = async() => {
         dstep_servo.angle(angle);
         old_time = now;
         old_step = step;
+        // LEDでの歩数差分表示
+        for (let l = 0; l < Math.floor(dstep); l++) {
+            led[l].on();
+        }
+        for (let l = Math.floor(dstep); l < NUM_OF_LEDS; l++) {
+            led[l].off();
+        }
+
         // 歩数をサーボで表示
         angle = 180 - 180 * (step / low_digit) / high_digit;
         if (angle <= 0) { angle = 0; }
