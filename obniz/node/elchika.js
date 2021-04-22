@@ -1,6 +1,7 @@
 //// ピン割当
 //  0(SDA),1(SCL)       I2C (BMP280+SHT31)
-//  2-7                 LED
+//  2-6                 LED
+//  7                   RGB LED shield (WS2812B-3535)
 //  8                   USB Fan
 //  9                   PIR
 //  10,11               servo
@@ -21,8 +22,12 @@ let state = false; // 現在の状態
 let old_state = false; // 一つ前の状態
 
 //// LED関連
+// LEDアレイ
 let led = [];
-const NUM_OF_LEDS = 7;
+const NUM_OF_LEDS = 6;
+// WS2128B RGB LEDアレイ
+let leds;
+const WS2128_LEDS = 7;
 
 //// サーボ関連
 // 歩数差分表示用
@@ -53,7 +58,6 @@ obniz1.onconnect = async() => {
     //// サーボモーター
     let dstep_servo = obniz1.wired("ServoMotor", { signal: 11 });
     let step_servo = obniz1.wired("ServoMotor", { signal: 10 });
-    let l_step_servo = obniz1.wired("ServoMotor", { signal: 7 });
 
     //// BMP280+SHT31用のI2C初期化
     //        obniz.getFreeI2C();は使えない
@@ -163,6 +167,7 @@ obniz1.onconnect = async() => {
         // 歩数差分を表示する
         let now = Date.now();
         let dstep = 1000 * (step - old_step) / (now - old_time); // step/sec
+        if (dstep > 5) dstep = 5;
         console.log("Delta step:" + dstep);
         let angle = 180 - 180 * (dstep * 0.25);
         if (angle <= 0) { angle = 0; }
