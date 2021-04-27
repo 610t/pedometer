@@ -73,6 +73,26 @@ obniz1.onconnect = async() => {
         led[l] = obniz1.wired("LED", { anode: (l + 2) });
     }
 
+    // LED WS2812Bの初期化
+    leds = obniz1.wired("WS2812B", { din: 7 });
+    await leds.rgbs([
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0]
+    ]);
+    await obniz1.wait(1000);
+    let colors = [];
+    for (let l = 0; l < WS2128_LEDS; l++) {
+        let color = [Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), Math.floor(Math.random() * 255)];
+        await colors.push(color);
+    }
+    console.info(colors);
+    await leds.rgbs(colors);
+
     //// M5StickCが接続された時
     m5.onconnect = async() => {
         console.info(">>>> M5 connected");
@@ -189,13 +209,28 @@ obniz1.onconnect = async() => {
         step_servo.angle(angle);
         // 特定歩数を超えた場合のフィーバーモード
         if (fever == false && step >= high_digit * low_digit) {
-            const w = 400;
+            const w = 200;
+            const lw = 20;
             for (let i = 0; i < 5; i++) {
                 dstep_servo.angle(180);
                 step_servo.angle(0);
+                m5.led.on();
+                for (let l = 0; l < NUM_OF_LEDS; l++) {
+                    if (l > 0) { led[l - 1].off() }
+                    led[l].on();
+                    await obniz1.wait(lw);
+                }
+                led[NUM_OF_LEDS - 1].off();
                 await obniz1.wait(w);
                 dstep_servo.angle(0);
                 step_servo.angle(180);
+                m5.led.off();
+                for (let l = NUM_OF_LEDS - 1; l >= 0; l--) {
+                    if (l < NUM_OF_LEDS - 1) { led[l + 1].off() }
+                    led[l].on();
+                    await obniz1.wait(lw);
+                }
+                led[0].off();
                 await obniz1.wait(w);
             }
             fever = true;
